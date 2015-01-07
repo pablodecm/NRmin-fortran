@@ -8,17 +8,18 @@ IMPLICIT NONE
 CHARACTER (LEN=20) :: file_name
 INTEGER, PARAMETER :: in_unit = 15
 INTEGER :: err_open, err_read
-REAL, ALLOCATABLE, DIMENSION(:) :: x_val, y_val, y_err
+REAL, ALLOCATABLE, DIMENSION(:) :: x, y, y_err
 
 CONTAINS
 
     ! Subroutine to read data from file
-    SUBROUTINE read_from_file(file_name, x_val, y_val, y_err)
+    SUBROUTINE read_from_file(file_name, x, y, y_err)
         IMPLICIT NONE
         CHARACTER(LEN=20), INTENT(IN) :: file_name
         INTEGER :: data_count ! for  checking number of data points
         REAL :: data_value ! dummy float variable
-        REAL, ALLOCATABLE, DIMENSION(:), INTENT(OUT) :: x_val, y_val, y_err
+        INTEGER :: i
+        REAL, ALLOCATABLE, DIMENSION(:), INTENT(OUT) :: x, y, y_err
 
 
         ! Open file
@@ -40,6 +41,17 @@ CONTAINS
             END IF
         END DO
         WRITE(*,*) 'The number of entries in the file is ', data_count
+
+        ! Read data from file
+        REWIND(in_unit)
+        ALLOCATE(x(data_count))
+        ALLOCATE(y(data_count))
+        ALLOCATE(y_err(data_count))
+        DO i=1,data_count
+            READ(in_unit, *, IOSTAT = err_read) x(i), y(i), y_err(i)
+            IF(err_read > 0) STOP 'Error whilw reading the file'
+        END DO
+        WRITE(*,*) 'File read'
 
     END SUBROUTINE read_from_file
 
