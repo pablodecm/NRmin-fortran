@@ -9,8 +9,8 @@ CHARACTER (LEN=20) :: file_name ! data file
 INTEGER, PARAMETER :: in_unit = 15
 INTEGER :: err_open, err_read
 REAL, ALLOCATABLE, DIMENSION(:) :: x, y, sigma ! data arrays
-REAL :: a,b ! fit parameters
-REAL :: chi2 ! value to minimize
+REAL, DIMENSION(2,1) :: par
+REAL :: tol
 
 CONTAINS
 
@@ -58,13 +58,13 @@ CONTAINS
     END SUBROUTINE read_from_file
 
     ! Function obtain the chi2 value for the least square fitting
-    FUNCTION chi2_func(x,y,sigma,a,b)
+    FUNCTION chi2_func(x,y,sigma, par)
         IMPLICIT NONE
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
-        REAL, INTENT(IN) :: a, b
+        REAL, DIMENSION(2,1), INTENT(IN) :: par
         REAL :: chi2_func
 
-        chi2_func = SUM((-b*x**2 - EXP(a*x) + y )**2*sigma**(-2))
+        chi2_func = SUM((-par(2,1)*x**2 - EXP(par(1,1)*x) + y )**2*sigma**(-2))
 
     END FUNCTION chi2_func
 
@@ -73,14 +73,14 @@ CONTAINS
     FUNCTION hessian_func(x, y, sigma, par)
         IMPLICIT NONE
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
-        REAL, DIMENSION(2), INTENT(IN) :: par
+        REAL, DIMENSION(2,1), INTENT(IN) :: par
         REAL, DIMENSION(2,2) :: hessian_func
 
         hessian_func(1,1) = SUM(2*sigma**(-2)*x**2 &
-            & *((b*x**2-y)*EXP(par(1)*x)+2*EXP(2*par(1)*x)))
-        hessian_func(1,2) = SUM(2*sigma**(-2)*x**3*EXP(par(1)*x))
-        hessian_func(2,2) = SUM(2*sigma**(-2)*x**2)
-        hessian_func(2,1) = SUM(2*sigma**(-2)*x**3*EXP(par(1)*x))
+            & *((par(2,1)*x**2-y)*EXP(par(1,1)*x)+2*EXP(2*par(1,1)*x)))
+        hessian_func(1,2) = SUM(2*sigma**(-2)*x**3*EXP(par(1,1)*x))
+        hessian_func(2,2) = SUM(2*sigma**(-2)*x**4)
+        hessian_func(2,1) = SUM(2*sigma**(-2)*x**3*EXP(par(1,1)*x))
 
     END FUNCTION hessian_func
 
@@ -89,12 +89,12 @@ CONTAINS
     FUNCTION grad_func(x, y, sigma, par)
         IMPLICIT NONE
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
-        REAL, DIMENSION(2), INTENT(IN) :: par
-        REAL, DIMENSION(2) :: grad_func
+        REAL, DIMENSION(2,1), INTENT(IN) :: par
+        REAL, DIMENSION(2,1) :: grad_func
 
-        grad_func(1) = SUM(2*sigma**(-2)*x &
-            & *((b*x**2-y)*EXP(par(1)*x)+2*EXP(2*par(1)*x)))
-        grad_func(2) = SUM(2*sigma**(-2)*x**2*(par(2)*x**2+EXP(par(1)*x)-y))
+        grad_func(1,1) = SUM(2*sigma**(-2)*x &
+            & *((par(2,1)*x**2-y + EXP(par(1,1)*x))*EXP(par(1,1)*x)))
+        grad_func(2,1) = SUM(2*sigma**(-2)*x**2*(par(2,1)*x**2+EXP(par(1,1)*x)-y))
 
     END FUNCTION grad_func
 
@@ -106,13 +106,38 @@ CONTAINS
         REAL, DIMENSION(2,2) :: inverse_func
 
         det = mat(1,1)*mat(2,2) - mat(1,2)*mat(2,1)
-        inverse_func(1,1) = mat(2,2)
-        inverse_func(1,2) = - mat(2,1)
-        inverse_func(2,2) = mat(1,2)
-        inverse_func(2,1) = mat(1,1)
-        inverse_func = inverse_func/det
+        inverse_func(1,1) = mat(2,2)/det
+        inverse_func(1,2) = - mat(2,1)/det
+        inverse_func(2,2) = mat(1,1)/det
+        inverse_func(2,1) = - mat(1,2)/det
 
     END FUNCTION inverse_func
+
+    ! Subroutine to perform a least squares estimation
+    ! of the parameters a and b using Newton-Raphson method
+    SUBROUTINE nr_fit(x, y, sigma, par, tol )
+        IMPLICIT NONE
+        REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
+        REAL, DIMENSION(2,1), INTENT(INOUT) :: par ! also as output
+        REAL, INTENT(IN) :: tol
+        REAL, DIMENSION(2,2) :: H, H_inv
+        REAL, DIMENSION(2,1) :: grad
+        REAL, DIMENSION(2,1) :: n_par
+        REAL :: diff
+
+        diff = HUGE(diff) ! be sure of pass condition
+
+        ! Loop until difference less than tolerance
+        DO WHILE ( diff > tol )
+            WRITE(*,*) par, chi2_func(x,y,sigma, par)
+            H = hessian_func(x,y,sigma, par) ! obtain hessian
+            H_inv = inverse_func(H) ! invert hessian
+            grad =  grad_func(x, y, sigma, par) ! get gradiente
+            n_par = par - MATMUL(H_inv, grad) ! estimate new parameters
+            par = n_par ! update
+        END DO
+
+    END SUBROUTINE nr_fit
 
 END MODULE NRmin_mod
 
