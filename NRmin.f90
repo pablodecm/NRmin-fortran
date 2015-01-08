@@ -10,6 +10,6 @@ USE NRmin_mod
 IMPLICIT NONE
 
 file_name = "exp.dat"
-CALL  read_from_file(file_name, x, y, y_err)
+CALL  read_from_file(file_name, x, y, sigma)
 
 END PROGRAM NRmin
