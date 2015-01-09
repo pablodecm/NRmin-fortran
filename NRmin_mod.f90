@@ -9,7 +9,8 @@ CHARACTER (LEN=20) :: file_name ! data file
 INTEGER, PARAMETER :: in_unit = 15
 INTEGER :: err_open, err_read
 REAL, ALLOCATABLE, DIMENSION(:) :: x, y, sigma ! data arrays
-REAL, DIMENSION(2,1) :: par
+REAL, DIMENSION(2,1) :: par ! to keep parameters
+REAL, DIMENSION(2,2) :: cov ! to save covariance matrix
 REAL :: tol
 
 CONTAINS
@@ -24,6 +25,7 @@ CONTAINS
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(OUT) :: x, y, sigma
 
 
+        WRITE(*,*) "--- importing data ---"
         ! Open file
         WRITE(*,*) 'Opening file: ', file_name
         OPEN(in_unit, FILE = file_name, STATUS ='OLD', IOSTAT = err_open)
@@ -36,13 +38,12 @@ CONTAINS
             IF (err_read > 0 ) THEN
                 STOP 'Error while reading file'
             ELSE IF (err_read < 0) THEN
-                WRITE(*,*) 'Data file scanned'
                 EXIT
             ELSE
                 data_count = data_count+1
             END IF
         END DO
-        WRITE(*,*) 'The number of entries in the file is ', data_count
+        WRITE(*,*) '# data entries', data_count
 
         ! Read data from file
         REWIND(in_unit)
@@ -53,7 +54,6 @@ CONTAINS
             READ(in_unit, *, IOSTAT = err_read) x(i), y(i), sigma(i)
             IF(err_read > 0) STOP 'Error whilw reading the file'
         END DO
-        WRITE(*,*) 'File read'
 
     END SUBROUTINE read_from_file
 
@@ -115,29 +115,56 @@ CONTAINS
 
     ! Subroutine to perform a least squares estimation
     ! of the parameters a and b using Newton-Raphson method
-    SUBROUTINE nr_fit(x, y, sigma, par, tol )
+    SUBROUTINE nr_fit(x, y, sigma, par, tol , verbose)
         IMPLICIT NONE
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
         REAL, DIMENSION(2,1), INTENT(INOUT) :: par ! also as output
         REAL, INTENT(IN) :: tol
+        LOGICAL, INTENT(IN) :: verbose
         REAL, DIMENSION(2,2) :: H, H_inv
         REAL, DIMENSION(2,1) :: grad
         REAL, DIMENSION(2,1) :: n_par
+        INTEGER :: iter
         REAL :: diff
 
+        WRITE(*,*) "--- minimization of \Chi^2 by Newton-Raphson ---"
         diff = HUGE(diff) ! be sure of pass condition
+        iter = 0 ! init iterator
 
-        ! Loop until difference less than tolerance
+        ! Loop until difference less than tolerance or not converging
         DO WHILE ( diff > tol )
-            WRITE(*,*) par, chi2_func(x,y,sigma, par)
+            IF(verbose) WRITE(*,"(A, I4, A,F8.5,A,F8.5,A,F8.3)") "step " &
+                & , iter,  ": a = ", par(1,1), "  b = ", par(2,1) & 
+                & , " \Chi^2 = ", chi2_func(x, y, sigma, par)
+            iter = iter + 1
             H = hessian_func(x,y,sigma, par) ! obtain hessian
             H_inv = inverse_func(H) ! invert hessian
-            grad =  grad_func(x, y, sigma, par) ! get gradiente
+            grad =  grad_func(x, y, sigma, par) ! get gradient
             n_par = par - MATMUL(H_inv, grad) ! estimate new parameters
+            diff = MAXVAL(ABS(par-n_par))
             par = n_par ! update
         END DO
 
+        IF(verbose) WRITE(*,"(A, I4, A,F8.5,A,F8.5,A,F8.3)") "step " &
+                & , iter,  ": a = ", par(1,1), "  b = ", par(2,1) & 
+                & , " \Chi^2 = ", chi2_func(x, y, sigma, par)
+        WRITE(*,*) "convergence reached!"
     END SUBROUTINE nr_fit
+
+    ! Function to obtain covariance matrix from Hessian
+    FUNCTION cov_func(x, y, sigma, par)
+        IMPLICIT NONE
+        REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
+        REAL, DIMENSION(2,1), INTENT(IN) :: par
+        REAL, DIMENSION(2,2) :: hessian
+        REAL, DIMENSION(2,2) :: cov_func
+
+        WRITE(*,*) "--- estimating covariance matrix ---"
+
+        hessian =  hessian_func(x, y, sigma, par)
+        cov_func = inverse_func(hessian/2)
+
+    END FUNCTION cov_func
 
 END MODULE NRmin_mod
 
