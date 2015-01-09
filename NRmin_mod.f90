@@ -4,6 +4,8 @@ MODULE NRmin_mod
 ! by Newton-Raphson method. Also is used to estimate bias and error
 ! using toy MC.
 
+USE mod_random
+
 IMPLICIT NONE
 CHARACTER (LEN=20) :: file_name ! data file
 INTEGER, PARAMETER :: in_unit = 15
@@ -12,6 +14,8 @@ REAL, ALLOCATABLE, DIMENSION(:) :: x, y, sigma ! data arrays
 REAL, DIMENSION(2,1) :: par ! to keep parameters
 REAL, DIMENSION(2,2) :: cov ! to save covariance matrix
 REAL :: tol
+INTEGER :: n_sim
+REAL, DIMENSION(2,1):: bias, error
 
 CONTAINS
 
@@ -127,7 +131,7 @@ CONTAINS
         INTEGER :: iter
         REAL :: diff
 
-        WRITE(*,*) "--- minimization of \Chi^2 by Newton-Raphson ---"
+        IF(verbose) WRITE(*,*) "--- minimization of \Chi^2 by Newton-Raphson ---"
         diff = HUGE(diff) ! be sure of pass condition
         iter = 0 ! init iterator
 
@@ -148,7 +152,7 @@ CONTAINS
         IF(verbose) WRITE(*,"(A, I4, A,F8.5,A,F8.5,A,F8.3)") "step " &
                 & , iter,  ": a = ", par(1,1), "  b = ", par(2,1) & 
                 & , " \Chi^2 = ", chi2_func(x, y, sigma, par)
-        WRITE(*,*) "convergence reached!"
+        IF(verbose) WRITE(*,*) "convergence reached!"
     END SUBROUTINE nr_fit
 
     ! Function to obtain covariance matrix from Hessian
@@ -165,6 +169,38 @@ CONTAINS
         cov_func = inverse_func(hessian/2)
 
     END FUNCTION cov_func
+
+    SUBROUTINE simulate(x, y, sigma, par, n_sim, bias, error)
+        IMPLICIT NONE
+        REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
+        REAL, DIMENSION(2,1), INTENT(IN) :: par
+        INTEGER, INTENT(IN) :: n_sim
+        REAL, DIMENSION(2,1), INTENT(OUT) :: bias, error
+        REAL, ALLOCATABLE, DIMENSION(:) :: y_sim
+        REAL, DIMENSION(2,1) :: t_par
+        REAL, DIMENSION(2,n_sim) :: par_sim
+        INTEGER :: idum = -347191 ! random seed
+        INTEGER :: s, i
+
+        ALLOCATE(y_sim(SIZE(y)))
+        DO s=1,n_sim
+            y_sim = EXP(par(1,1)*x) + par(2,1)*x**2
+            DO i=1,SIZE(y)  ! add noise component
+                y_sim(i) =  y_sim(i) + sigma(i)*gasdev(idum)
+            END DO
+            ! estimate parameters again
+            t_par(1,1) = 1.
+            t_par(2,1) = 1.
+            CALL nr_fit(x, y_sim, sigma, t_par, 1e-5, .FALSE.)
+            par_sim(1,s) = t_par(1,1)
+            par_sim(2,s) = t_par(2,1)
+            END DO
+
+        bias(:,1) = SUM(par_sim,2)/n_sim - par(:,1)
+        error(:,1) = SQRT(SUM(par_sim**2, 2)/n_sim &
+            &- (SUM(par_sim,2)/n_sim)**2)
+
+    END SUBROUTINE
 
 END MODULE NRmin_mod
 
