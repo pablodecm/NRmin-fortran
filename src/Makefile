@@ -4,7 +4,8 @@
 FC = gfortran
 
 # flags
-FCFLAGS = -g -fbounds-check -Wall -Wextra # debug (comment if not needed)
+# FCFLAGS = -g -fbounds-check -Wall -Wextra # debug
+FCFLAGS = -O3 # optimization
 
 # object file names
 OBJS = mod_chi2.o mod_random.o NRmin_mod.o NRmin.o

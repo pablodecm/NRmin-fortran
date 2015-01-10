@@ -32,9 +32,10 @@ WRITE(*,"(A,I3)") "Degrees of freedom: ", SIZE(x) - SIZE(par)
 WRITE(*,"(A,F5.3)") "Probability chi^2(real)>chi^2(obtained): " &
     & , gammq(REAL(SIZE(x)-SIZE(par)), chi2_func(x,y,sigma,par))
 
-n_sim = 100000
-CALL simulate(x, y, sigma, par, n_sim, bias, error )
 WRITE(*,*) "--- MC simulation ---"
+n_sim = 100000
+WRITE(*,*) "# simulations: ", n_sim
+CALL simulate(x, y, sigma, par, n_sim, bias, error )
 WRITE(*,"(A,F8.5,A,F7.5)") "a parameter -> bias = ", bias(1,1) & 
     & ," error= ", error(1,1)
 WRITE(*,"(A,F8.5,A,F7.5)") "b parameter -> bias = ", bias(2,1) & 
