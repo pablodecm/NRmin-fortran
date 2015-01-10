@@ -7,7 +7,7 @@ Fortran project from programming course @ University of Cantabria
 
 ## Requirements
 
-* gfortran (madify Makefile for other compilers)
+* gfortran (modify Makefile for other compilers)
 
 ## How to install
 
