@@ -16,5 +16,5 @@ NRmin.bin: $(OBJS)
 	$(FC) -c $(FCFLAGS) $<
 
 clean:
-	rm -f *.o *.mod
+	rm -f *.o *.mod *.bin
 

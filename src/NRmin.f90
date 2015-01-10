@@ -11,7 +11,7 @@ USE mod_chi2
 IMPLICIT NONE
 
 ! read data from file
-file_name = "exp.dat"
+file_name = "../data/exp.dat"
 CALL  read_from_file(file_name, x, y, sigma)
 
 ! estimate best parameters
