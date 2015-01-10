@@ -16,6 +16,6 @@ A Makefile is provided in the src folder:
     cd src
     make
 
-This will create a executable, that can be executed** as:
+This will create a executable, that can be executed as:
 
     ./NRmin.bin
