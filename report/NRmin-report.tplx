@@ -1,0 +1,9 @@
+((*- extends 'article.tplx' -*))
+
+((* block author *))
+\author{Pablo de Castro}
+((* endblock author *))
+
+((* block title *))
+\title{Minimización por el método de Newton-Raphson}
+((* endblock title *))
