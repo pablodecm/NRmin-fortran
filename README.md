@@ -30,10 +30,12 @@ which can be checked online [here](http://nbviewer.ipython.org/github/pablodecm/
 
 It can also be opened and executed ( if IPython, NumPy
 and Matplotlib are available)by:
+
     cd report
     ipython notebook NRmin-report.ipynb
 
 The report has been exported to Latex and pdf with the
 nbconvert utility:
+
     cd report
     ipython nbconvert
