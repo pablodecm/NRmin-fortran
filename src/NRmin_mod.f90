@@ -170,6 +170,7 @@ CONTAINS
 
     END FUNCTION cov_func
 
+    ! Subroutine to estimate bias and error from MC simulations
     SUBROUTINE simulate(x, y, sigma, par, n_sim, bias, error)
         IMPLICIT NONE
         REAL, ALLOCATABLE, DIMENSION(:), INTENT(IN) :: x, y, sigma
