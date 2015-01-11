@@ -23,7 +23,7 @@ CALL  nr_fit(x, y, sigma, par, tol, .TRUE.)
 ! estimate covariance matrix
 cov = cov_func(x, y, sigma, par)
 
-WRITE(*,*) "--- NR minimization final results --- "
+WRITE(*,*) "--- NR minimization results --- "
 WRITE(*,"(A,F7.5,A,F7.5)") "a parameter: ", par(1,1), " \pm ", SQRT(cov(1,1))
 WRITE(*,"(A,F7.5,A,F7.5)") "b parameter: ", par(2,1), " \pm ", SQRT(cov(2,2))
 WRITE(*,*) "--- goodness of fit ---"
@@ -41,6 +41,9 @@ WRITE(*,"(A,F8.5,A,F7.5)") "a parameter -> bias = ", bias(1,1) &
 WRITE(*,"(A,F8.5,A,F7.5)") "b parameter -> bias = ", bias(2,1) & 
     & ," error= ", error(2,1)
 
+WRITE(*,*) "--- final results with simulation --- "
+WRITE(*,"(A,F7.5,A,F7.5)") "a parameter: ", par(1,1)-bias(1,1), " \pm ", error(1,1)
+WRITE(*,"(A,F7.5,A,F7.5)") "b parameter: ", par(2,1)-bias(2,1), " \pm ", error(2,1)
 WRITE(*,*) "--- end of the program ---"
 
 END PROGRAM NRmin
